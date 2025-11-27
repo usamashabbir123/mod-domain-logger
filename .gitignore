@@ -1,0 +1,57 @@
+# Build artifacts
+*.o
+*.so
+*.la
+*.lo
+*.a
+*.dylib
+*.dll
+*.exe
+
+# CMake build directory
+build/
+CMakeFiles/
+cmake_install.cmake
+CMakeCache.txt
+*.cmake
+
+# Automake artifacts
+*.in
+Makefile
+aclocal.m4
+config.log
+config.status
+autom4te.cache/
+.deps/
+.dirstamp
+stamp-h*
+
+# IDE and editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.vscode
+
+# Visual Studio
+*.vcxproj.user
+.vs/
+Debug/
+Release/
+
+# FreeSWITCH
+/var/
+/log/
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*~
+.#*
+
+# Module-specific
+mod_logfile/
+*.swp

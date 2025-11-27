@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration name="logfile_domain.conf" description="Domain-specific File Logging">
+  <settings>
+    <!-- true to auto rotate on HUP, false to open/close -->
+    <param name="rotate-on-hup" value="true"/>
+  </settings>
+  <profiles>
+    <profile name="default">
+      <settings>
+        <!-- Log directory (will be created if it doesn't exist) -->
+        <!-- Logs are named: domain_<domain_name>.log -->
+        <!-- At this length in bytes rotate the log file (0 for never) -->
+        <param name="rollover" value="10485760"/>
+        <!-- Maximum number of log files to keep before wrapping -->
+        <!-- <param name="maximum-rotate" value="32"/> -->
+      </settings>
+      <mappings>
+        <!-- Log all levels for domain-specific capturing -->
+        <map name="all" value="debug,info,notice,warning,err,crit,alert"/>
+      </mappings>
+    </profile>
+  </profiles>
+</configuration>
