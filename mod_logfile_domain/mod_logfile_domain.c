@@ -226,6 +226,9 @@ static switch_status_t write_domain_log(const char *domain, const char *log_data
 }
 
 /* Main logging callback */
+/* forward-declare render function in case header isn't available */
+SWITCH_DECLARE(switch_status_t) switch_log_node_render(const switch_log_node_t *node, char *buf, size_t len);
+
 static switch_status_t mod_logfile_domain_logger(const switch_log_node_t *node, switch_log_level_t level)
 {
     switch_core_session_t *session = NULL;
@@ -237,8 +240,16 @@ static switch_status_t mod_logfile_domain_logger(const switch_log_node_t *node, 
     char date[80] = "";
     size_t retsize;
 
-    if (!node || !node->message) {
+    if (!node) {
         return SWITCH_STATUS_SUCCESS;
+    }
+
+    /* Render message into buffer instead of accessing struct fields that may change */
+    char rendered_msg[1024] = "";
+    if (switch_log_node_render) {
+        if (switch_log_node_render(node, rendered_msg, sizeof(rendered_msg)) != SWITCH_STATUS_SUCCESS) {
+            rendered_msg[0] = '\0';
+        }
     }
 
     /* Skip internal module logs to prevent recursion */
@@ -270,7 +281,7 @@ static switch_status_t mod_logfile_domain_logger(const switch_log_node_t *node, 
                            node->file ? node->file : "unknown",
                            node->func ? node->func : "unknown",
                            node->line, 
-                           node->message, 
+                           rendered_msg[0] ? rendered_msg : "(message)", 
                            uuid ? uuid : "unknown");
         } else {
             switch_snprintf(log_line, sizeof(log_line),
@@ -280,7 +291,7 @@ static switch_status_t mod_logfile_domain_logger(const switch_log_node_t *node, 
                            node->file ? node->file : "unknown",
                            node->func ? node->func : "unknown",
                            node->line,
-                           node->message);
+                           rendered_msg[0] ? rendered_msg : "(message)");
         }
 
         write_domain_log(domain, log_line);
