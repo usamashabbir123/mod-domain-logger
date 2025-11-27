@@ -1,8 +1,10 @@
 AC_INIT([mod_logfile_domain], [1.0], [support@example.com])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
+AC_CONFIG_MACRO_DIRS([m4])
 
 AC_PROG_CC
-AC_PROG_LIBTOOL
+AC_PROG_AR
+LT_INIT([disable-static])
 
 # Check for FreeSWITCH
 PKG_CHECK_MODULES([FREESWITCH], [freeswitch], [], [
