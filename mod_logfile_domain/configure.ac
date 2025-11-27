@@ -1,32 +1,27 @@
-AC_INIT([mod_logfile_domain], [1.0], [support@example.com])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
+AC_INIT([mod_logfile_domain], [1.0])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_MACRO_DIRS([m4])
 
 AC_PROG_CC
-AC_PROG_AR
-LT_INIT([disable-static])
+AM_PROG_AR
+LT_INIT
 
 # Check for FreeSWITCH
-PKG_CHECK_MODULES([FREESWITCH], [freeswitch], [], [
-  # Fallback if pkg-config doesn't find it
-  AC_ARG_WITH([freeswitch],
-    [AS_HELP_STRING([--with-freeswitch=PATH], [FreeSWITCH installation path])],
-    [
-      FREESWITCH_CFLAGS="-I$withval/include/freeswitch"
-      FREESWITCH_LIBS="-L$withval/lib -lfreeswitch"
-    ],
-    [
-      # Default FreeSWITCH paths
-      FREESWITCH_CFLAGS="-I/usr/include/freeswitch"
-      FREESWITCH_LIBS="-L/usr/lib -lfreeswitch"
-    ]
-  )
+AC_ARG_WITH([freeswitch],
+  [AS_HELP_STRING([--with-freeswitch=PATH], [FreeSWITCH installation path (default: /usr)])],
+  [FREESWITCH_PREFIX="$withval"],
+  [FREESWITCH_PREFIX="/usr"]
+)
+
+# Try pkg-config first, fallback to direct paths
+PKG_CHECK_MODULES([FREESWITCH], [freeswitch >= 1.8], [], [
+  # Manual fallback if pkg-config doesn't work
+  FREESWITCH_CFLAGS="-I${FREESWITCH_PREFIX}/include/freeswitch"
+  FREESWITCH_LIBS="-L${FREESWITCH_PREFIX}/lib -lfreeswitch"
 ])
 
 AC_SUBST([FREESWITCH_CFLAGS])
 AC_SUBST([FREESWITCH_LIBS])
 
-AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])
-
 AC_OUTPUT
