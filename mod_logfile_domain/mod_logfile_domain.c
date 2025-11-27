@@ -400,7 +400,7 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_logfile_domain_load)
     {
         char diag_path[512];
         switch_file_t *diag = NULL;
-        unsigned int flags = SWITCH_FOPEN_CREATE | SWITCH_FOPEN_WRITE | SWITCH_FOPEN_TRUNC;
+        unsigned int flags = SWITCH_FOPEN_CREATE | SWITCH_FOPEN_WRITE | SWITCH_FOPEN_TRUNCATE;
         switch_snprintf(diag_path, sizeof(diag_path), "%s%sswitch_mod_logfile_domain_loaded", SWITCH_GLOBAL_dirs.log_dir, SWITCH_PATH_SEPARATOR);
         if (switch_file_open(&diag, diag_path, flags, SWITCH_FPROT_OS_DEFAULT, module_pool) == SWITCH_STATUS_SUCCESS) {
             const char *msg = "mod_logfile_domain loaded\n";
