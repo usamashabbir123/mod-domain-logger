@@ -39,6 +39,27 @@ make
 sudo make install
 ```
 
+### Quick deploy/uninstall scripts (recommended)
+
+Two helper scripts are provided in `mod_logfile_domain/`:
+
+- `deploy.sh`: builds, installs, installs configuration, adds a `<load module="mod_logfile_domain"/>` entry to `modules.conf.xml` (backing it up first), and tries to load the module via `fs_cli`.
+- `uninstall.sh`: unloads the module via `fs_cli` (if available), removes the module binaries and configuration, removes the load entry from `modules.conf.xml` (backing it up first), and reloads FreeSWITCH XML.
+
+Usage (run as root or with sudo):
+
+```bash
+cd mod_logfile_domain
+chmod +x build.sh deploy.sh uninstall.sh
+sudo ./deploy.sh
+
+# If something went wrong and you need to remove the module:
+sudo ./uninstall.sh
+```
+
+Both scripts back up modified files (`modules.conf.xml` and the module config) with a `.bak.TIMESTAMP` suffix before changing or removing them.
+
+
 ### Install Configuration
 
 ```bash
