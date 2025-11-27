@@ -20,6 +20,7 @@
  */
 
 #include <switch.h>
+#include <dlfcn.h>
 
 SWITCH_MODULE_LOAD_FUNCTION(mod_logfile_domain_load);
 SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_logfile_domain_shutdown);
@@ -32,6 +33,10 @@ SWITCH_MODULE_DEFINITION(mod_logfile_domain, mod_logfile_domain_load, mod_logfil
 
 static switch_memory_pool_t *module_pool = NULL;
 static switch_hash_t *domain_hash = NULL;
+
+/* function pointer for optional API (may not exist in older FreeSWITCH builds) */
+typedef switch_status_t (*switch_log_node_render_fn)(const switch_log_node_t *node, char *buf, size_t len);
+static switch_log_node_render_fn switch_log_node_render_ptr = NULL;
 
 /* Domain file cache entry */
 typedef struct {
@@ -226,8 +231,6 @@ static switch_status_t write_domain_log(const char *domain, const char *log_data
 }
 
 /* Main logging callback */
-/* forward-declare render function in case header isn't available */
-SWITCH_DECLARE(switch_status_t) switch_log_node_render(const switch_log_node_t *node, char *buf, size_t len);
 
 static switch_status_t mod_logfile_domain_logger(const switch_log_node_t *node, switch_log_level_t level)
 {
@@ -246,8 +249,8 @@ static switch_status_t mod_logfile_domain_logger(const switch_log_node_t *node, 
 
     /* Render message into buffer instead of accessing struct fields that may change */
     char rendered_msg[1024] = "";
-    if (switch_log_node_render) {
-        if (switch_log_node_render(node, rendered_msg, sizeof(rendered_msg)) != SWITCH_STATUS_SUCCESS) {
+    if (switch_log_node_render_ptr) {
+        if (switch_log_node_render_ptr(node, rendered_msg, sizeof(rendered_msg)) != SWITCH_STATUS_SUCCESS) {
             rendered_msg[0] = '\0';
         }
     }
@@ -342,6 +345,14 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_logfile_domain_load)
 
     /* Create module interface */
     *module_interface = switch_loadable_module_create_module_interface(pool, modname);
+
+    /* Try to resolve optional render API at runtime to remain compatible with older FS builds */
+    switch_log_node_render_ptr = (switch_log_node_render_fn)dlsym(RTLD_DEFAULT, "switch_log_node_render");
+    if (switch_log_node_render_ptr) {
+        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "mod_logfile_domain: runtime resolved switch_log_node_render\n");
+    } else {
+        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "mod_logfile_domain: switch_log_node_render not available; using fallback\n");
+    }
 
     /* Register logging hook */
     switch_log_bind_logger(mod_logfile_domain_logger, SWITCH_LOG_DEBUG, SWITCH_TRUE);
