@@ -21,6 +21,7 @@
 
 #include <switch.h>
 #include <dlfcn.h>
+#include <ctype.h>
 
 SWITCH_MODULE_LOAD_FUNCTION(mod_logfile_domain_load);
 SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_logfile_domain_shutdown);
@@ -182,6 +183,35 @@ static const char *extract_domain(switch_channel_t *channel)
     return NULL;
 }
 
+/* Try to extract domain from a rendered log message (fallback) */
+static const char *extract_domain_from_msg(const char *msg)
+{
+    static char domainbuf[128];
+    const char *p;
+    size_t i = 0;
+
+    if (!msg) return NULL;
+
+    /* look for domain_name=VALUE */
+    p = strstr(msg, "domain_name=");
+    if (!p) {
+        p = strstr(msg, "domain=");
+        if (!p) return NULL;
+        p += strlen("domain=");
+    } else {
+        p += strlen("domain_name=");
+    }
+
+    /* copy until whitespace or non-printable or end */
+    while (*p && !isspace((unsigned char)*p) && i + 1 < sizeof(domainbuf)) {
+        domainbuf[i++] = *p++;
+    }
+    domainbuf[i] = '\0';
+
+    if (i == 0) return NULL;
+    return domainbuf;
+}
+
 /* Write log data to domain file */
 static switch_status_t write_domain_log(const char *domain, const char *log_data)
 {
@@ -267,6 +297,14 @@ static switch_status_t mod_logfile_domain_logger(const switch_log_node_t *node, 
         
         if (channel) {
             domain = extract_domain(channel);
+        }
+    }
+
+    /* Fallback: if no session/domain, try to parse rendered message for domain_name= or domain= */
+    if (zstr(domain) && rendered_msg[0]) {
+        const char *f = extract_domain_from_msg(rendered_msg);
+        if (f) {
+            domain = f;
         }
     }
 
@@ -356,6 +394,23 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_logfile_domain_load)
 
     /* Register logging hook */
     switch_log_bind_logger(mod_logfile_domain_logger, SWITCH_LOG_DEBUG, SWITCH_TRUE);
+
+    /* One-time diagnostic: write a small verification file to the freeswitch log directory
+       to make it easy to confirm the module has write permission and can create files. */
+    {
+        char diag_path[512];
+        switch_file_t *diag = NULL;
+        unsigned int flags = SWITCH_FOPEN_CREATE | SWITCH_FOPEN_WRITE | SWITCH_FOPEN_TRUNC;
+        switch_snprintf(diag_path, sizeof(diag_path), "%s%sswitch_mod_logfile_domain_loaded", SWITCH_GLOBAL_dirs.log_dir, SWITCH_PATH_SEPARATOR);
+        if (switch_file_open(&diag, diag_path, flags, SWITCH_FPROT_OS_DEFAULT, module_pool) == SWITCH_STATUS_SUCCESS) {
+            const char *msg = "mod_logfile_domain loaded\n";
+            switch_size_t wrote = (switch_size_t)strlen(msg);
+            switch_file_write(diag, msg, &wrote);
+            switch_file_close(diag);
+        } else {
+            switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "mod_logfile_domain: could not write diagnostic file %s\n", diag_path);
+        }
+    }
 
     switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE,
                     "mod_logfile_domain: Loaded successfully - Domain-specific logging enabled\n");
